@@ -5,12 +5,23 @@ import Filter from './components/Filter';
 import Persons from './components/PersonsList';
 import phoneServices from './services/phonebook';
 
+function Notification(props) {
+  if(props.message === null) return null
+
+  return (
+    <div className={props.type}>
+      <h1>{props.message}</h1>
+    </div>
+  )
+}
+
 function App() {
   const [persons, setPersons] = useState([]) 
   const [newName, setNewName] = useState('enter a name...')
   const [newPhoneNumber, setPhoneNumber] = useState('enter a number')
   const [search, setSearch] = useState('')
   const [searchPersons, setSearchPersons] = useState()
+  const [notificationMessage, setNotificationMessage] = useState({message: null, type: null})
 
   useEffect(() => {
     phoneServices.getAll()
@@ -44,10 +55,14 @@ function App() {
          const personObject = {
           name: newName,
           number: newPhoneNumber,
-          id: persons.length + 1
+          id: new Date()
          }
          phoneServices.create(personObject)
-         .then(response => { setPersons(persons.concat(response))})
+         .then(response => { 
+            setPersons(persons.concat(response))
+            setNotificationMessage({message: `Added ${response.name}`, type: 'success-message'})
+            setTimeout(() => setNotificationMessage({message: null, type: null}), 3000)
+        })
     }
   }
 
@@ -57,7 +72,6 @@ function App() {
       phoneServices.remove(id)
       .then(() => {
         setPersons(persons.filter(person => person.id !== id))
-        
       })
     }
   }
@@ -71,8 +85,12 @@ function App() {
        }
       phoneServices.update(id, personObject)
       .then(() => {
-        setPersons(persons.map(person => person.id !== id ? person : personObject))
-        
+        setPersons(persons.map(person => person.id !== id ? person : personObject))    
+      })
+      .catch((error) => {
+        setNotificationMessage({message: `${personObject.name} has already been removed`, type: 'error-message'})
+        setTimeout(() => setNotificationMessage({message: null, type: null}), 3000)
+        setPersons(persons.filter(person => person.id !== id))
       })
     }
   }
@@ -80,6 +98,7 @@ function App() {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notificationMessage.message} type={notificationMessage.type} />
         <Filter search={search} handleSearch={handleSearch}/>
       <h2>Add new person</h2>
         <PersonForm 
